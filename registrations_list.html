@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Registrations | BAU Seminar Management{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0"><i class="bi bi-people me-2 text-bau-cyan"></i>Registrations</h1>
+    <a href="{{ url_for('event_detail', event_id=event.id) }}" class="btn btn-outline-secondary">Back to Event</a>
+</div>
+<div class="section-card p-3 mb-3">
+    <p class="mb-1"><strong>Event:</strong> {{ event.title }}</p>
+    <p class="mb-1"><strong>Date:</strong> {{ event.event_date | day_date }}</p>
+    <p class="mb-1"><strong>Time:</strong> {{ event.start_time }} – {{ event.end_time }}</p>
+    <p class="mb-0"><strong>Active:</strong> {{ active_count }} | <strong>Remaining Seats:</strong> {{ remaining_seats }}</p>
+</div>
+<div class="section-card p-3">
+    {% if registrations %}
+    <div class="table-responsive">
+        <table class="table table-striped mb-0">
+            <thead><tr><th>Student Name</th><th>Student ID</th><th>Email</th><th>State</th><th>Registered</th></tr></thead>
+            <tbody>
+                {% for reg in registrations %}
+                <tr>
+                    <td>{{ reg.student_name }}</td>
+                    <td>{{ reg.student_id }}</td>
+                    <td>{{ reg.email }}</td>
+                    <td><span class="badge text-bg-secondary">{{ reg.state }}</span></td>
+                    <td class="small">{{ reg.registered_at }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="mb-0 text-muted">No registrations found for this event.</p>
+    {% endif %}
+</div>
+{% endblock %}

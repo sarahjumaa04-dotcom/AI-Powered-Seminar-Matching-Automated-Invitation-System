@@ -1,0 +1,212 @@
+{% extends "base.html" %}
+{% block title %}Bulk Invite Professors | BAU Seminar Management{% endblock %}
+{% block content %}
+<h1 class="h3 mb-3"><i class="bi bi-people me-2 text-bau-cyan"></i>Bulk Invite by Department</h1>
+<div class="section-card p-4">
+    <form method="post" id="bulkForm">
+        <div class="row g-3 mb-3">
+            <div class="col-md-12">
+                <label for="event_id" class="form-label">Select Event</label>
+                <select id="event_id" name="event_id" class="form-select" required>
+                    <option value="">— Choose an event —</option>
+                    {% for event in events %}
+                    <option value="{{ event.id }}" {% if selected_event_id == event.id|string %}selected{% endif %}>
+                        {{ event.title }} — {{ event.event_date | day_date }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-12">
+                <label class="form-label">
+                    Select Professors
+                    <span id="aiRankBadge" class="badge bg-info ms-2 d-none"><i class="bi bi-stars me-1"></i>AI Ranked</span>
+                    <span id="rankingSpinner" class="spinner-border spinner-border-sm text-info ms-2 d-none" role="status"></span>
+                </label>
+                <div class="mb-2 d-flex gap-3 align-items-center">
+                    <label class="form-check form-check-inline mb-0">
+                        <input type="checkbox" class="form-check-input" id="selectAllGlobal">
+                        <span class="form-check-label fw-bold">Select All</span>
+                    </label>
+                    <span id="rankingHint" class="text-muted small">Select an event to see AI-ranked suggestions.</span>
+                </div>
+
+                <!-- AI Top Matches section (hidden until event selected) -->
+                <div id="topMatchesSection" class="d-none mb-3">
+                    <div class="dept-header bg-info bg-opacity-10 border border-info border-opacity-25">
+                        <input type="checkbox" class="form-check-input dept-select-all" id="selectAllTopMatches">
+                        <span class="text-info fw-semibold"><i class="bi bi-stars me-1"></i>Top Matches</span>
+                        <span class="badge bg-info ms-auto" id="topMatchesCount">0</span>
+                    </div>
+                    <div class="dept-body" id="topMatchesList"></div>
+                </div>
+
+                <!-- Default department groups (always present, hidden during ranking display) -->
+                <div id="deptGroups">
+                {% for dept in departments %}
+                <div class="dept-group">
+                    <div class="dept-header">
+                        <input type="checkbox" class="form-check-input dept-select-all" data-dept="{{ dept }}">
+                        <span>{{ dept }}</span>
+                        <span class="badge text-bg-light ms-auto">
+                            {{ advisors|selectattr('department','equalto', dept)|list|length }}
+                        </span>
+                    </div>
+                    <div class="dept-body">
+                        {% for adv in advisors if adv.department == dept %}
+                        <div class="form-check advisor-row" id="row_{{ adv.id }}">
+                            <input class="form-check-input advisor-cb" type="checkbox" name="advisor_ids" value="{{ adv.id }}" id="adv_{{ adv.id }}" data-dept="{{ dept }}">
+                            <label class="form-check-label" for="adv_{{ adv.id }}">
+                                {{ adv.full_name }} <span class="text-muted small">({{ adv.email }})</span>
+                                <span class="score-badge ms-1 d-none"></span>
+                            </label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endfor %}
+                </div>
+            </div>
+            <div class="col-md-12">
+                <label for="personal_message" class="form-label">Personalized Message (Optional)</label>
+                <textarea id="personal_message" name="personal_message" class="form-control" rows="3" placeholder="Dear {name}, we are pleased to invite you to {event_title}...">{{ personal_message }}</textarea>
+                <div class="form-text">Use <code>{name}</code> for the professor's name and <code>{event_title}</code> for the event title.</div>
+            </div>
+        </div>
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary"><i class="bi bi-send me-1"></i>Create Invitations</button>
+            <a href="{{ url_for('invitations_list') }}" class="btn btn-outline-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const eventSelect   = document.getElementById("event_id");
+    const globalCb      = document.getElementById("selectAllGlobal");
+    const badge         = document.getElementById("aiRankBadge");
+    const spinner       = document.getElementById("rankingSpinner");
+    const hint          = document.getElementById("rankingHint");
+    const topSection    = document.getElementById("topMatchesSection");
+    const topList       = document.getElementById("topMatchesList");
+    const topCount      = document.getElementById("topMatchesCount");
+    const topSelectAll  = document.getElementById("selectAllTopMatches");
+
+    const SCORE_COLORS = {
+        "Excellent Match": "success",
+        "Strong Match":    "primary",
+        "Moderate Match":  "warning",
+        "Weak Match":      "secondary",
+        "Not Relevant":    "light",
+    };
+
+    // Wire up global select-all (re-evaluated after ranking updates DOM)
+    function wireSelectAll() {
+        const allAdvCbs = document.querySelectorAll(".advisor-cb");
+        const allDeptCbs = document.querySelectorAll(".dept-select-all");
+
+        globalCb.addEventListener("change", () => {
+            allAdvCbs.forEach(cb => cb.checked = globalCb.checked);
+            allDeptCbs.forEach(cb => cb.checked = globalCb.checked);
+        });
+
+        allDeptCbs.forEach(dcb => {
+            dcb.addEventListener("change", () => {
+                const dept = dcb.dataset.dept;
+                if (dept) {
+                    allAdvCbs.forEach(cb => {
+                        if (cb.dataset.dept === dept) cb.checked = dcb.checked;
+                    });
+                } else {
+                    // Top Matches select-all
+                    document.querySelectorAll("#topMatchesList .advisor-cb-top").forEach(cb => {
+                        // Mirror the check state on the real checkbox too
+                        const realCb = document.getElementById("adv_" + cb.dataset.advId);
+                        if (realCb) realCb.checked = dcb.checked;
+                        cb.checked = dcb.checked;
+                    });
+                }
+            });
+        });
+    }
+
+    function applyRanking(ranked) {
+        // Clear previous top matches
+        topList.innerHTML = "";
+
+        // Score badges on existing dept rows
+        ranked.forEach(adv => {
+            const badge = document.querySelector(`#row_${adv.id} .score-badge`);
+            if (!badge) return;
+            const color = SCORE_COLORS[adv.score_label] || "secondary";
+            badge.className = `score-badge badge bg-${color} ms-1`;
+            badge.textContent = `${adv.score_label} ${adv.match_score}%`;
+            badge.classList.remove("d-none");
+        });
+
+        // Build Top Matches (score >= 50) sorted highest first
+        const topMatches = ranked.filter(a => a.match_score >= 50);
+        if (topMatches.length > 0) {
+            topMatches.forEach(adv => {
+                const color = SCORE_COLORS[adv.score_label] || "secondary";
+                const row = document.createElement("div");
+                row.className = "form-check";
+                row.innerHTML = `
+                    <input class="form-check-input advisor-cb-top" type="checkbox"
+                           data-adv-id="${adv.id}" id="top_${adv.id}">
+                    <label class="form-check-label" for="top_${adv.id}">
+                        ${adv.full_name}
+                        <span class="text-muted small">(${adv.email})</span>
+                        <span class="badge bg-${color} ms-1">${adv.score_label} — ${adv.match_score}%</span>
+                    </label>`;
+                // Keep real checkbox in sync
+                row.querySelector(".advisor-cb-top").addEventListener("change", function () {
+                    const real = document.getElementById("adv_" + this.dataset.advId);
+                    if (real) real.checked = this.checked;
+                });
+                topList.appendChild(row);
+            });
+
+            topCount.textContent = topMatches.length;
+            topSection.classList.remove("d-none");
+        } else {
+            topSection.classList.add("d-none");
+        }
+
+        badge.classList.remove("d-none");
+        hint.textContent = `AI ranked ${ranked.length} professors by relevance to this event.`;
+
+        wireSelectAll();
+    }
+
+    function clearRanking() {
+        topSection.classList.add("d-none");
+        topList.innerHTML = "";
+        document.querySelectorAll(".score-badge").forEach(b => {
+            b.classList.add("d-none");
+            b.textContent = "";
+        });
+        badge.classList.add("d-none");
+        hint.textContent = "Select an event to see AI-ranked suggestions.";
+    }
+
+    eventSelect.addEventListener("change", function () {
+        clearRanking();
+        const eventId = this.value;
+        if (!eventId) return;
+
+        spinner.classList.remove("d-none");
+        fetch(`/api/advisors/ranked?event_id=${eventId}`)
+            .then(r => r.json())
+            .then(data => { if (data.ranked) applyRanking(data.ranked); })
+            .catch(() => { hint.textContent = "Could not load AI rankings."; })
+            .finally(() => spinner.classList.add("d-none"));
+    });
+
+    wireSelectAll();
+
+    if (eventSelect.value) eventSelect.dispatchEvent(new Event("change"));
+});
+</script>
+{% endblock %}

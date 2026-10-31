@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block title %}Invitation Preview | BAU Seminar Management{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0"><i class="bi bi-eye me-2 text-bau-cyan"></i>Invitation Preview</h1>
+    <a href="{{ url_for('invitations_list') }}" class="btn btn-outline-secondary">Back to Invitations</a>
+</div>
+
+<p class="text-muted">
+    Delivery mode: <strong>{{ delivery_mode }}</strong>.
+    {% if delivery_mode == 'local' %}
+    This preview is intended for local share/send simulation.
+    {% else %}
+    SMTP sending can be attempted if SMTP config is complete.
+    {% endif %}
+</p>
+
+<div class="section-card p-4 mb-3">
+    <h2 class="h5 mb-3">Invitation Context</h2>
+    <p class="mb-1"><strong>Event:</strong> {{ invitation.event_title }}</p>
+    <p class="mb-1"><strong>Topic:</strong> {{ invitation.event_topic }}</p>
+    <p class="mb-1"><strong>Date:</strong> {{ invitation.event_date | day_date }}</p>
+    <p class="mb-1"><strong>Time (HH:MM):</strong> {{ invitation.start_time }} - {{ invitation.end_time }}</p>
+    <p class="mb-1"><strong>Location:</strong> {{ invitation.location }}</p>
+    <p class="mb-1"><strong>Advisor:</strong> {{ invitation.advisor_name }}</p>
+    <p class="mb-1"><strong>Advisor Email:</strong> {{ invitation.advisor_email }}</p>
+    <p class="mb-0">
+        <strong>Status:</strong>
+        <span class="badge text-bg-{{ status_meta.badge }}">{{ status_meta.label }}</span>
+        <span class="text-muted">- {{ status_meta.meaning }}</span>
+    </p>
+</div>
+
+<div class="section-card p-4 mb-3">
+    <h2 class="h5 mb-2">Response Link</h2>
+    <a href="{{ response_url }}" target="_blank">{{ response_url }}</a>
+</div>
+
+<div class="section-card p-4 mb-3">
+    <h2 class="h5 mb-2">Subject</h2>
+    <pre class="mb-0">{{ subject }}</pre>
+</div>
+
+<div class="section-card p-4 mb-3">
+    <h2 class="h5 mb-2">Body (Plain Text)</h2>
+    <pre class="mb-0">{{ body }}</pre>
+</div>
+
+{% if status_meta.is_pending %}
+<form action="{{ url_for('invitation_send', invitation_id=invitation.id) }}" method="post">
+    <input type="hidden" name="next" value="preview">
+    <button type="submit" class="btn btn-primary">Send/Resend</button>
+</form>
+{% else %}
+<div class="alert alert-info mb-0">
+    This invitation already has a final response. Normal send/resend is not shown for final statuses.
+</div>
+{% endif %}
+{% endblock %}

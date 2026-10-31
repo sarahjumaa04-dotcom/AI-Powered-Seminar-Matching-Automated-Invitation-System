@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Event Detail | BAU Seminar Management{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0"><i class="bi bi-calendar-event me-2 text-bau-cyan"></i>Event Detail</h1>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('event_edit', event_id=event.id) }}" class="btn btn-outline-secondary"><i class="bi bi-pencil me-1"></i>Edit</a>
+        <a href="{{ url_for('events_list') }}" class="btn btn-outline-primary">Back to Events</a>
+    </div>
+</div>
+<div class="section-card p-4 mb-3">
+    <h2 class="h5">{{ event.title }}</h2>
+    <p class="mb-2 text-muted">{{ event.description or "No description provided." }}</p>
+    <div class="row">
+        <div class="col-md-4 mb-2"><strong>Topic:</strong> {{ event.topic }}</div>
+        <div class="col-md-4 mb-2"><strong>Date:</strong> {{ event.event_date | day_date }}</div>
+        <div class="col-md-4 mb-2"><strong>Time:</strong> {{ event.start_time }} – {{ event.end_time }}</div>
+        <div class="col-md-4 mb-2"><strong>Location:</strong> {{ event.location }}</div>
+        <div class="col-md-4 mb-2"><strong>Capacity:</strong> {{ event.capacity }}</div>
+        <div class="col-md-4 mb-2"><strong>Deadline:</strong> {{ event.registration_deadline | day_date if event.registration_deadline else "Not set" }}</div>
+        <div class="col-md-4 mb-2">
+            <strong>Status:</strong>
+            {% if event.status == 'open' %}
+            <span class="badge text-bg-success">Open</span> <span class="text-muted small">Visible to students, registration open</span>
+            {% elif event.status == 'closed' %}
+            <span class="badge text-bg-secondary">Closed</span> <span class="text-muted small">Visible but registration closed</span>
+            {% else %}
+            <span class="badge text-bg-warning">Draft</span> <span class="text-muted small">Not visible to students</span>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% if auth_user and auth_user.role == 'admin' %}
+<div class="section-card p-4 mb-3">
+    <h3 class="h6 mb-2"><i class="bi bi-envelope me-1"></i>Invitations</h3>
+    <p class="mb-1"><strong>Confirmed:</strong> {{ invitation_summary.accepted_count }}</p>
+    <p class="mb-1"><strong>Pending:</strong> {{ invitation_summary.pending_count }}</p>
+    <p class="mb-2"><strong>Declined:</strong> {{ invitation_summary.declined_count }}</p>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('invitations_list') }}" class="btn btn-sm btn-outline-primary">View Invitations</a>
+        <a href="{{ url_for('invitation_new', event_id=event.id) }}" class="btn btn-sm btn-outline-secondary">Create Invitation</a>
+        <a href="{{ url_for('invitation_bulk_create', event_id=event.id) }}" class="btn btn-sm btn-outline-secondary">Bulk Invite</a>
+    </div>
+</div>
+{% endif %}
+<div class="section-card p-4">
+    <h3 class="h6 mb-2"><i class="bi bi-people me-1"></i>Registrations</h3>
+    <a href="{{ url_for('registrations_list', event_id=event.id) }}" class="btn btn-sm btn-outline-primary">View Registrations</a>
+</div>
+{% endblock %}

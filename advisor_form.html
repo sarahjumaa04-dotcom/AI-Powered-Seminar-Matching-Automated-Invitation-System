@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}{{ mode }} Professor | BAU Seminar Management{% endblock %}
+{% block content %}
+<h1 class="h3 mb-3"><i class="bi bi-person me-2 text-bau-cyan"></i>{{ mode }} Professor</h1>
+<div class="section-card p-4">
+    <form method="post">
+        <div class="row g-3">
+            <div class="col-md-3">
+                <label for="title" class="form-label">Academic Title</label>
+                <input type="text" id="title" name="title" class="form-control" value="{{ advisor.title if advisor else '' }}" placeholder="e.g. Prof. Dr.">
+            </div>
+            <div class="col-md-9">
+                <label for="full_name" class="form-label">Full Name</label>
+                <input type="text" id="full_name" name="full_name" class="form-control" value="{{ advisor.full_name if advisor else '' }}" placeholder="e.g. Prof. Dr. Ahmet Arif ERGİN" required>
+            </div>
+            <div class="col-md-6">
+                <label for="department" class="form-label">Department</label>
+                <input type="text" id="department" name="department" class="form-control" value="{{ advisor.department if advisor else '' }}" required>
+            </div>
+            <div class="col-md-6">
+                <label for="email" class="form-label">Email</label>
+                <input type="email" id="email" name="email" class="form-control" value="{{ advisor.email if advisor else '' }}" required>
+            </div>
+            <div class="col-md-12">
+                <label for="expertise_keywords" class="form-label">Expertise Keywords</label>
+                <input type="text" id="expertise_keywords" name="expertise_keywords" class="form-control" value="{{ advisor.expertise_keywords if advisor else '' }}" required>
+                <div class="form-text">Separate keywords with semicolons or commas.</div>
+            </div>
+            <div class="col-md-12">
+                <label for="recent_seminar_topics" class="form-label">Recent Academic Topics</label>
+                <textarea id="recent_seminar_topics" name="recent_seminar_topics" class="form-control" rows="2">{{ advisor.recent_seminar_topics if advisor else '' }}</textarea>
+                <div class="form-text">Recent seminar/conference topics (pipe-separated).</div>
+            </div>
+        </div>
+        <div class="mt-3 d-flex gap-2">
+            <button type="submit" class="btn btn-primary">{% if mode == "Create" %}Create Professor{% else %}Save Changes{% endif %}</button>
+            <a href="{{ url_for('advisors_list') }}" class="btn btn-outline-secondary">Cancel</a>
+        </div>
+    </form>
+    {% if mode == "Edit" and advisor %}
+    <hr>
+    <form method="post" action="{{ url_for('advisor_delete', advisor_id=advisor.id) }}">
+        <button type="submit" class="btn btn-outline-danger" onclick="return confirm('Remove this professor?');"><i class="bi bi-trash me-1"></i>Remove Professor</button>
+    </form>
+    {% endif %}
+</div>
+{% endblock %}

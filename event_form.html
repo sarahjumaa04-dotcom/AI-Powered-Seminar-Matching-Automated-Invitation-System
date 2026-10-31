@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block title %}{{ mode }} Event | BAU Seminar Management{% endblock %}
+
+{% block content %}
+<h1 class="h3 mb-3"><i class="bi bi-calendar-plus me-2 text-bau-cyan"></i>{{ mode }} Event</h1>
+
+<div class="section-card p-4">
+    <form method="post">
+        <div class="row g-3">
+            <div class="col-md-12">
+                <label for="title" class="form-label">Title</label>
+                <input type="text" id="title" name="title" class="form-control" value="{{ event.title if event else '' }}" placeholder="e.g. AI in Education Summit" required>
+            </div>
+            <div class="col-md-12">
+                <label for="description" class="form-label">Description</label>
+                <textarea id="description" name="description" class="form-control" rows="3" placeholder="Optional short event description">{{ event.description if event else '' }}</textarea>
+            </div>
+            <div class="col-md-6">
+                <label for="topic" class="form-label">Topic</label>
+                <input type="text" id="topic" name="topic" class="form-control" value="{{ event.topic if event else '' }}" placeholder="e.g. Cybersecurity" required>
+            </div>
+            <div class="col-md-6">
+                <label for="event_date" class="form-label">Event Date</label>
+                <input type="date" id="event_date" name="event_date" class="form-control" value="{{ event.event_date if event else '' }}" required>
+                <div class="form-text" id="dayNamePreview">{% if event and event.event_date %}{{ event.event_date | day_date }}{% endif %}</div>
+            </div>
+            <div class="col-md-4">
+                <label for="start_time" class="form-label">Start Time (HH:MM)</label>
+                <input type="time" id="start_time" name="start_time" class="form-control" value="{{ event.start_time if event else '' }}" required>
+            </div>
+            <div class="col-md-4">
+                <label for="end_time" class="form-label">End Time (HH:MM)</label>
+                <input type="time" id="end_time" name="end_time" class="form-control" value="{{ event.end_time if event else '' }}" required>
+            </div>
+            <div class="col-md-4">
+                <label for="location" class="form-label">Location</label>
+                <input type="text" id="location" name="location" class="form-control" value="{{ event.location if event else '' }}" placeholder="e.g. Main Hall" required>
+            </div>
+            <div class="col-md-4">
+                <label for="capacity" class="form-label">Capacity</label>
+                <input type="number" id="capacity" name="capacity" class="form-control" value="{{ event.capacity if event else '' }}" min="1" placeholder="e.g. 120" required>
+            </div>
+            <div class="col-md-4">
+                <label for="registration_deadline" class="form-label">Registration Deadline</label>
+                <input type="date" id="registration_deadline" name="registration_deadline" class="form-control" value="{{ event.registration_deadline if event and event.registration_deadline else '' }}">
+                <div class="form-text">Optional. After this date, students cannot register.</div>
+            </div>
+            <div class="col-md-4">
+                <label for="status" class="form-label">Status</label>
+                <select id="status" name="status" class="form-select" required>
+                    <option value="draft" {% if event and event.status == 'draft' %}selected{% endif %}>Draft — Not visible to students</option>
+                    <option value="open" {% if event and event.status == 'open' %}selected{% endif %}>Open — Visible, registration open</option>
+                    <option value="closed" {% if event and event.status == 'closed' %}selected{% endif %}>Closed — Visible, registration closed</option>
+                </select>
+                <div class="form-text">
+                    <strong>Draft</strong> = only admin/organizer can see it.<br>
+                    <strong>Open</strong> = students can see and register.<br>
+                    <strong>Closed</strong> = students can see but cannot register.
+                </div>
+            </div>
+        </div>
+        <div class="mt-3 d-flex gap-2">
+            <button type="submit" class="btn btn-primary">
+                {% if mode == "Create" %}Create Event{% else %}Save Changes{% endif %}
+            </button>
+            <a href="{{ url_for('events_list') }}" class="btn btn-outline-secondary">Cancel</a>
+        </div>
+    </form>
+
+    {% if mode == "Edit" and event and auth_user and auth_user.role == 'admin' %}
+    <hr>
+    <form method="post" action="{{ url_for('event_delete', event_id=event.id) }}">
+        <button
+            type="submit"
+            class="btn btn-outline-danger"
+            onclick="return confirm('Remove this event? Linked invitations and registrations will also be removed.');"
+        >
+            <i class="bi bi-trash me-1"></i>Remove Event
+        </button>
+    </form>
+    {% endif %}
+</div>
+{% endblock %}

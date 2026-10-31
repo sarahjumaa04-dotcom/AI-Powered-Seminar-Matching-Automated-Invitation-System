@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Invitations | BAU Seminar Management{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0"><i class="bi bi-envelope me-2 text-bau-cyan"></i>Invitations</h1>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('events_list') }}" class="btn btn-outline-primary">Back to Events</a>
+        <a href="{{ url_for('invitation_new') }}" class="btn btn-outline-secondary">Single Invite</a>
+        <a href="{{ url_for('invitation_bulk_create') }}" class="btn btn-primary"><i class="bi bi-people me-1"></i>Bulk Invite</a>
+    </div>
+</div>
+<div class="section-card p-3">
+    {% if invitations %}
+    <div class="table-responsive">
+        <table class="table table-striped table-hover mb-0">
+            <thead><tr><th>Event</th><th>Professor</th><th>Date</th><th>Status</th><th>Sent/Created</th><th>Actions</th></tr></thead>
+            <tbody>
+                {% for inv in invitations %}
+                <tr>
+                    <td class="fw-bold small">{{ inv.event_title }}</td>
+                    <td>
+                        <div class="small fw-bold">{{ inv.advisor_name }}</div>
+                        <div class="text-muted" style="font-size:0.75rem">{{ inv.advisor_email }}</div>
+                    </td>
+                    <td class="small">{{ inv.event_date | day_date }}</td>
+                    <td>
+                        <span class="badge text-bg-{{ inv.badge }}">{{ inv.label }}</span>
+                        <div class="text-muted" style="font-size:0.7rem">{{ inv.meaning }}</div>
+                    </td>
+                    <td class="small">{{ inv.sent_at or inv.created_at }}</td>
+                    <td>
+                        <div class="d-flex flex-wrap gap-1">
+                            <a href="{{ url_for('invitation_preview', invitation_id=inv.id) }}" class="btn btn-sm btn-outline-primary" title="Preview"><i class="bi bi-eye"></i></a>
+                            <a href="{{ base_url }}{{ url_for('invite_response', token=inv.token) }}" target="_blank" class="btn btn-sm btn-outline-secondary" title="Response Link"><i class="bi bi-link-45deg"></i></a>
+                            {% if inv.is_pending %}
+                            <form action="{{ url_for('invitation_send', invitation_id=inv.id) }}" method="post" class="d-inline">
+                                <button type="submit" class="btn btn-sm btn-outline-secondary" title="Send"><i class="bi bi-send"></i></button>
+                            </form>
+                            {% endif %}
+                            {% if inv.status != 'cancelled' %}
+                            <form action="{{ url_for('invitation_update_status', invitation_id=inv.id) }}" method="post" class="d-inline">
+                                <input type="hidden" name="action" value="cancel">
+                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Cancel" onclick="return confirm('Cancel this invitation?');"><i class="bi bi-x-circle"></i></button>
+                            </form>
+                            {% endif %}
+                            {% if inv.status in ('cancelled', 'declined', 'accepted') %}
+                            <form action="{{ url_for('invitation_update_status', invitation_id=inv.id) }}" method="post" class="d-inline">
+                                <input type="hidden" name="action" value="reset">
+                                <button type="submit" class="btn btn-sm btn-outline-warning" title="Reset to Pending"><i class="bi bi-arrow-counterclockwise"></i></button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="mb-0 text-muted">No invitations found. Use "Bulk Invite" to invite professors.</p>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}Dashboard | BAU Seminar Management{% endblock %}
+{% block content %}
+<h1 class="h3 mb-4"><i class="bi bi-speedometer2 me-2 text-bau-cyan"></i>Dashboard</h1>
+<div class="row g-3 mb-4">
+    <div class="col-md-6 col-xl-3">
+        <div class="stat-card">
+            <div class="stat-label">Total Events</div>
+            <div class="stat-value">{{ stats.total_events }}</div>
+        </div>
+    </div>
+    <div class="col-md-6 col-xl-3">
+        <div class="stat-card">
+            <div class="stat-label">Public Events</div>
+            <div class="stat-value">{{ stats.public_events }}</div>
+        </div>
+    </div>
+    <div class="col-md-6 col-xl-3">
+        <div class="stat-card">
+            <div class="stat-label">Pending Invitations</div>
+            <div class="stat-value">{{ stats.pending_invitations }}</div>
+        </div>
+    </div>
+    <div class="col-md-6 col-xl-3">
+        <div class="stat-card">
+            <div class="stat-label">Registrations</div>
+            <div class="stat-value">{{ stats.registrations }}</div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-md-6 col-lg-4">
+        <a href="{{ url_for('events_list') }}" class="section-card p-3 d-block text-decoration-none">
+            <div class="d-flex align-items-center gap-3">
+                <i class="bi bi-calendar3 text-bau-blue" style="font-size:1.5rem"></i>
+                <div>
+                    <div class="fw-bold">Manage Events</div>
+                    <div class="text-muted small">Create, edit, and manage events</div>
+                </div>
+            </div>
+        </a>
+    </div>
+    {% if auth_user and auth_user.role == 'admin' %}
+    <div class="col-md-6 col-lg-4">
+        <a href="{{ url_for('advisors_list') }}" class="section-card p-3 d-block text-decoration-none">
+            <div class="d-flex align-items-center gap-3">
+                <i class="bi bi-people text-bau-cyan" style="font-size:1.5rem"></i>
+                <div>
+                    <div class="fw-bold">Professors</div>
+                    <div class="text-muted small">View and manage professor records</div>
+                </div>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-6 col-lg-4">
+        <a href="{{ url_for('advisor_match') }}" class="section-card p-3 d-block text-decoration-none">
+            <div class="d-flex align-items-center gap-3">
+                <i class="bi bi-cpu text-bau-blue" style="font-size:1.5rem"></i>
+                <div>
+                    <div class="fw-bold">AI Matching</div>
+                    <div class="text-muted small">Find best professors for seminars</div>
+                </div>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-6 col-lg-4">
+        <a href="{{ url_for('invitations_list') }}" class="section-card p-3 d-block text-decoration-none">
+            <div class="d-flex align-items-center gap-3">
+                <i class="bi bi-envelope text-bau-cyan" style="font-size:1.5rem"></i>
+                <div>
+                    <div class="fw-bold">Invitations</div>
+                    <div class="text-muted small">Manage speaker invitations</div>
+                </div>
+            </div>
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+
+{% block title %}Create Invitation | BAU Seminar Management{% endblock %}
+
+{% block content %}
+<h1 class="h3 mb-3"><i class="bi bi-envelope-plus me-2 text-bau-cyan"></i>Create Invitation</h1>
+
+<div class="section-card p-4">
+    <p class="text-muted mb-3">
+        Select an event and an advisor. A unique tokenized response link will be generated automatically.
+    </p>
+
+    {% if not events %}
+    <div class="alert alert-warning mb-3">No events found. Create an event first.</div>
+    {% endif %}
+    {% if not advisors %}
+    <div class="alert alert-warning mb-3">No advisors found. Create an advisor first.</div>
+    {% endif %}
+
+    <form method="post">
+        <div class="row g-3">
+            <div class="col-md-12">
+                <label for="event_id" class="form-label">Event</label>
+                <select id="event_id" name="event_id" class="form-select" required {% if not events %}disabled{% endif %}>
+                    <option value="">Select an event</option>
+                    {% for event in events %}
+                    <option value="{{ event.id }}" {% if invitation.event_id|string == event.id|string %}selected{% endif %}>
+                        {{ event.title }} | {{ event.event_date | day_date }} {{ event.start_time }}–{{ event.end_time }} | {{ event.location }}
+                    </option>
+                    {% endfor %}
+                </select>
+                <div class="form-text">Pick the event that needs advisor participation.</div>
+            </div>
+
+            <div class="col-md-12">
+                <label for="advisor_id" class="form-label">
+                    Advisor
+                    <span id="aiRankBadge" class="badge bg-info ms-2 d-none"><i class="bi bi-stars me-1"></i>AI Ranked</span>
+                    <span id="rankingSpinner" class="spinner-border spinner-border-sm text-info ms-2 d-none" role="status"></span>
+                </label>
+                <select id="advisor_id" name="advisor_id" class="form-select" required {% if not advisors %}disabled{% endif %}>
+                    <option value="">Select an advisor</option>
+                    {% for advisor in advisors %}
+                    <option value="{{ advisor.id }}" {% if invitation.advisor_id|string == advisor.id|string %}selected{% endif %}>
+                        {{ advisor.full_name }} ({{ advisor.email }}) — {{ advisor.department }}
+                    </option>
+                    {% endfor %}
+                </select>
+                <div class="form-text" id="advisorHint">Pick one advisor to invite for this event. Select an event first to see AI-ranked suggestions.</div>
+            </div>
+        </div>
+
+        <div class="mt-3 d-flex gap-2">
+            <button
+                type="button"
+                class="btn btn-primary"
+                {% if not events or not advisors %}disabled{% endif %}
+                data-bs-toggle="modal"
+                data-bs-target="#confirmSendModal"
+            >
+                <i class="bi bi-send me-1"></i>Send Invitation
+            </button>
+            <a href="{{ url_for('invitations_list') }}" class="btn btn-outline-secondary">Back to Invitations</a>
+        </div>
+    </form>
+</div>
+
+<!-- Confirmation Modal -->
+<div class="modal fade" id="confirmSendModal" tabindex="-1" aria-labelledby="confirmSendModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="confirmSendModalLabel"><i class="bi bi-envelope-check me-1"></i>Confirm Send Invitation</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to send this invitation? The email will be delivered to the selected advisor immediately.
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="document.querySelector('form').submit()">
+                    <i class="bi bi-send me-1"></i>Yes, Send
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+    const eventSelect = document.getElementById("event_id");
+    const advisorSelect = document.getElementById("advisor_id");
+    const badge = document.getElementById("aiRankBadge");
+    const spinner = document.getElementById("rankingSpinner");
+    const hint = document.getElementById("advisorHint");
+
+    const originalOptions = Array.from(advisorSelect.options).map(o => ({
+        value: o.value, text: o.text
+    }));
+
+    function rebuildAdvisorSelect(ranked) {
+        const prevValue = advisorSelect.value;
+        advisorSelect.innerHTML = "";
+        advisorSelect.appendChild(new Option("Select an advisor", ""));
+
+        ranked.forEach(adv => {
+            const scoreText = adv.match_score > 0
+                ? ` [${adv.score_label} — ${adv.match_score}%]`
+                : ` [Not Relevant]`;
+            const opt = new Option(
+                `${adv.full_name} (${adv.email}) — ${adv.department}${scoreText}`,
+                adv.id
+            );
+            if (String(adv.id) === String(prevValue)) opt.selected = true;
+            advisorSelect.appendChild(opt);
+        });
+
+        badge.classList.remove("d-none");
+        hint.textContent = "Advisors are ranked by AI relevance to the selected event. Most relevant appear first.";
+    }
+
+    function restoreAdvisorSelect() {
+        advisorSelect.innerHTML = "";
+        originalOptions.forEach(o => advisorSelect.appendChild(new Option(o.text, o.value)));
+        badge.classList.add("d-none");
+        hint.textContent = "Pick one advisor to invite for this event. Select an event first to see AI-ranked suggestions.";
+    }
+
+    eventSelect.addEventListener("change", function () {
+        const eventId = this.value;
+        if (!eventId) { restoreAdvisorSelect(); return; }
+
+        spinner.classList.remove("d-none");
+        badge.classList.add("d-none");
+
+        fetch(`/api/advisors/ranked?event_id=${eventId}`)
+            .then(r => r.json())
+            .then(data => { if (data.ranked) rebuildAdvisorSelect(data.ranked); })
+            .catch(() => { hint.textContent = "Could not load AI rankings. Showing default list."; })
+            .finally(() => spinner.classList.add("d-none"));
+    });
+
+    if (eventSelect.value) eventSelect.dispatchEvent(new Event("change"));
+})();
+</script>
+{% endblock %}
